@@ -180,6 +180,13 @@ function canAt(x,y){const c=D.canopy,i=Math.floor((x-c.x0)/c.sx+.5),j=Math.floor
   const t={x:tx,y:ty,gz:H(tx,ty),fir,h:fir?12+rnd()*13:10+rnd()*8,r:fir?2.6+rnd()*1.8:3.4+rnd()*2.4,v:Math.floor(rnd()*3)};t.r=fir?t.h*.2:t.h*.4;TREES.push(t);
   const R=Math.ceil(t.r/10)+1,cx=Math.floor(tx/10),cy=Math.floor(ty/10);
   for(let i=-R;i<=R;i++)for(let j=-R;j<=R;j++){const k=(cx+i)+','+(cy+j);if(!THASH.has(k))THASH.set(k,[]);THASH.get(k).push(t);}}
+ /* tree-line fill: where the aerial canopy map is solid near the course, pack trees tightly (rows of conifers between fairways) */
+ if(CAN&&D.canopy){const c=D.canopy,near=(x,y)=>inP(MAIN,x,y)||lines.some(l=>dPL(x,y,l.p)<75),tooClose=(x,y,r)=>{const k=Math.floor(x/10)+','+Math.floor(y/10),L=THASH.get(k);return L?L.some(t=>Math.hypot(t.x-x,t.y-y)<r):false;};
+   const tall=/Jefferson/i.test(D.name||'')?1.18:1;let added=0;
+   for(let j=0;j<c.ny;j++)for(let i=0;i<c.nx;i++){const cv=CAN[j*c.nx+i]/255;if(cv<.45)continue;const x=c.x0+i*c.sx+(rnd()-.5)*c.sx,y=c.y0+j*c.sy+(rnd()-.5)*c.sy;if(!near(x,y))continue;if(rnd()>(cv-.3)*.55)continue;
+     if(WATER.some(w=>inP(w,x,y))||FAIRWAYS.some(f=>inP(f,x,y))||obst.some(g=>Math.hypot(x-g.cx,y-g.cy)<g.R+4)||PATHS.some(p=>dPL(x,y,p)<2.5)||lines.some(l=>dPL(x,y,l.p)<(l.w>20?11:8))||tooClose(x,y,4.2))continue;
+     const fir=rnd()<.7,t={x,y,gz:H(x,y),fir,h:(fir?15+rnd()*12:12+rnd()*8)*tall,r:0,v:Math.floor(rnd()*3)};t.r=fir?t.h*.2:t.h*.4;TREES.push(t);added++;const R2=Math.ceil(t.r/10)+1,cx=Math.floor(x/10),cy=Math.floor(y/10);for(let a=-R2;a<=R2;a++)for(let b=-R2;b<=R2;b++){const k=(cx+a)+','+(cy+b);if(!THASH.has(k))THASH.set(k,[]);THASH.get(k).push(t);}}
+   console.log('tree-line fill',added,'total',TREES.length);}
  /* each tree is a camera-facing card cut from an 8-angle (fir) / 4-angle (broadleaf) atlas, blended between neighbouring angles */
  const firs=TREES.filter(t=>t.fir),decs=TREES.filter(t=>!t.fir);
  const iq=new THREE.PlaneGeometry(1,1);iq.translate(0,.5,0);
@@ -771,7 +778,7 @@ function buildAvatarSkel(p){const F=window.FACES&&FACES[p.id],lk=golfLook(p.look
     /* curl the fingers into a grip once, relative to the rest pose */
     for(const fn of['index','middle','ring','pinky','thumb'])for(let j=1;j<=3;j++){const b=B[fn+'_0'+j+'_'+sd];if(!b)continue;const ch=b.children.find(q=>q.isBone);if(!ch)continue;
       const d=ch.getWorldPosition(new THREE.Vector3()).sub(b.getWorldPosition(new THREE.Vector3())).normalize(),ax=v3(0,0,0).crossVectors(d,n0);if(ax.lengthSq()<1e-6)continue;ax.normalize().applyQuaternion(b.userData.r0.clone().invert());
-      const ang=fn==='thumb'?.35:[1.05,1.15,.85][j-1];b.userData.qc=b.userData.q0.clone().multiply(new THREE.Quaternion().setFromAxisAngle(ax,ang));}}
+      const ang=fn==='thumb'?.55:[1.35,1.5,1.15][j-1];b.userData.qc=b.userData.q0.clone().multiply(new THREE.Quaternion().setFromAxisAngle(ax,ang));}}
   /* cap / hair from the original look, pinned to the head bone */
   const cloth=c=>new THREE.MeshLambertMaterial({color:c}),hair=cloth(lk.hair||'#1b1512');
   const kx=T.halfW*1.04/.104,ky=(T.top-T.eyeY)/.093,kz=(T.zFront-T.zBack)*1.02/2/.114,hd=new THREE.Group();if(!T.pro)headwear(hd,lk,cloth,hair,.112,true);if(lk.cap&&lk.cap.style&&lk.cap.style!=='none')hd.children.forEach(o=>{if(o.material!==hair)o.position.y+=.02;});hd.scale.multiplyScalar(1.1);
@@ -904,7 +911,7 @@ function gripFix(g,type){/* golf grip: in each hand the shaft runs from the "V" 
   lead palm faces away from the target, trail palm faces the target, and the trail hand sits just below the lead hand, its palm covering the lead thumb */
   const R=g.userData.rig,B=R.B,cg=R.clubs&&R.clubs[type];if(!cg||!cg.visible||!B.hand_r||!B.hand_l||typeof armTo!=='function'||!R.arms)return;
   const q=cg.quaternion,xa=new THREE.Vector3(1,0,0).applyQuaternion(q),ya=new THREE.Vector3(0,1,0).applyQuaternion(q);const put=type==='putter';
-  const handQ=(s,n)=>{const A=R.arms[s],hb=B['hand_'+s];if(!A||!A.u0||!hb.userData.r0)return relQ(g,hb);const u=ya.clone();if(s==='l'){const ck=(window.__COCK!==undefined?window.__COCK:LEAD_COCK);if(ck)u.applyAxisAngle(n.clone().normalize(),ck);}const _u=u,nn=n.clone().addScaledVector(u,-n.dot(u)).normalize(),u0=A.u0.clone().normalize(),n0=A.n0.clone().addScaledVector(u0,-A.n0.dot(u0)).normalize();
+  const handQ=(s,n)=>{const A=R.arms[s],hb=B['hand_'+s];if(!A||!A.u0||!hb.userData.r0)return relQ(g,hb);const u=ya.clone();if(s==='l'){const ck=LEAD_COCK;if(ck)u.applyAxisAngle(n.clone().normalize(),ck);}const _u=u,nn=n.clone().addScaledVector(u,-n.dot(u)).normalize(),u0=A.u0.clone().normalize(),n0=A.n0.clone().addScaledVector(u0,-A.n0.dot(u0)).normalize();
     const Mt=new THREE.Matrix4().makeBasis(u,nn,new THREE.Vector3().crossVectors(u,nn)),M0=new THREE.Matrix4().makeBasis(u0,n0,new THREE.Vector3().crossVectors(u0,n0));
     return new THREE.Quaternion().setFromRotationMatrix(Mt).multiply(new THREE.Quaternion().setFromRotationMatrix(M0).invert()).multiply(hb.userData.r0);};
   const lineP=s=>{const hb=B['hand_'+s],t=B['thumb_01_'+s],ix=B['index_01_'+s],pk=B['pinky_01_'+s];if(!t||!ix)return gripPt(g,s);const w=gpG(g,hb),heel=pk?w.clone().lerp(gpG(g,pk),.22):w;return gpG(g,t).add(gpG(g,ix)).multiplyScalar(.5).add(heel).multiplyScalar(.5);};
