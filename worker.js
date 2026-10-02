@@ -214,7 +214,22 @@ function authorize(prev, next, user) {
        stays with moderators. */
     if (S(A.games) !== S(B.games)) {
       const had = (A.games || []).length;
-      if (had) return 'Only a moderator can change the slate';
+      if (had) {
+        /* The published schedule shifts -- kickoff times are finalised, a game
+           is added -- and every member's browser refreshes it. Refusing that
+           also refused the pick riding along in the same write, which is what
+           stopped a member picking at all. The schedule is public data, not a
+           competitive lever, so a member may apply it provided the result is
+           well formed and orphans nobody's pick. */
+        const bad = (B.games || []).some(g => !g || !g.id || !Array.isArray(g.a) || !Array.isArray(g.h));
+        if (bad) return 'That slate is malformed';
+        if (!(B.games || []).length) return 'Only a moderator can clear the slate';
+        const ids = new Set((B.games || []).map(g => g.id));
+        const orphan = Object.keys(B.picks || {}).some(n => !ids.has((B.picks[n] || {}).g))
+          || (B.bo || []).some(b => !ids.has(b.g));
+        if (orphan) return 'Only a moderator can remove a game someone is on';
+        continue;
+      }
       if (!(B.games || []).length) return 'Only a moderator can clear the slate';
       const bad = (B.games || []).some(g => !g || !g.id || !Array.isArray(g.a) || !Array.isArray(g.h));
       if (bad) return 'That slate is malformed';
