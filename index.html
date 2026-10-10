@@ -419,13 +419,14 @@ p { margin: 0; max-width: 62ch; }
     return hp;
   }
 
-  /* ------------------------------------------------------------------ Rosie (Showtime): the character-sheet drawing, posed live */
-  // Same shapes as the character sheet (units: origin at the feet, y up), cel-shaded parts, big glossy eyes.
+  /* ------------------------------------------------------------------ Rosie: the iconic design from the character sheet, posed live */
+  // Same shapes as the sheet (units: origin at the feet, y up), cel-shaded parts. Turquoise, white and gold with a red bow:
+  // a big white hat with a gold star (her logo), a side ponytail on her free side, big glossy eyes.
   const showRosie = (() => {
     const rgbOf = q => q[0] === '#' ? [parseInt(q.slice(1, 3), 16), parseInt(q.slice(3, 5), 16), parseInt(q.slice(5, 7), 16)] : q.match(/[\d.]+/g).slice(0, 3).map(Number);
     const tint = (a, b, k) => { const A = rgbOf(a), B = rgbOf(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; };
     const shade = (q, k = 0.22) => tint(q, '#3A1E2A', k), light = (q, k = 0.35) => tint(q, '#FFFFFF', k);
-    const A = { skin: '#F4CDA8', hair: '#E9B949', iris: '#3F6E9E', hat: '#FFFFFF', band: '#D9A229', jacket: '#F6E7C6', fringe: '#D9A229', boots: '#FFFFFF', gloves: '#D9413E', ribbon: '#D9413E', scarf: '#D9413E' };
+    const A = { skin: '#F4CDA8', hair: '#EDB53C', iris: '#2F6FA8', hat: '#FFFFFF', band: '#14958F', jacket: '#19A8A2', yoke: '#FFFFFF', fringe: '#FFFFFF', boots: '#FFFFFF', star: '#F2B632', gloves: '#FFFFFF', ribbon: '#E0413A', scarf: '#E0413A', belt: '#0E6E6A' };
     const ink = '#2A1810', TAU = Math.PI * 2;
     const star5 = (g, x, y, r) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); };
     return function (g, u, mood, armR, rope) {
@@ -437,39 +438,41 @@ p { margin: 0; max-width: 62ch; }
         if (o.hi !== false) { const q = new Path2D(); q.addPath(p); q.addPath(p, new DOMMatrix().translate(d * 0.55, d * 0.55)); g.fillStyle = o.hiCol || 'rgba(255,255,255,0.28)'; g.fill(q, 'evenodd'); }
         const q2 = new Path2D(); q2.addPath(p); q2.addPath(p, new DOMMatrix().translate(-d, -d * 0.9)); g.fillStyle = o.sh || shade(base); g.fill(q2, 'evenodd'); g.restore();
       };
-      const line = (pts, w, col) => { g.strokeStyle = col; g.lineWidth = w * u; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach((q, i) => i ? g.lineTo(...P(...q)) : g.moveTo(...P(...q))); g.stroke(); };
       const curve = (fn, w, col) => { g.strokeStyle = col; g.lineWidth = w * u; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); fn(); g.stroke(); };
       const dot = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(...P(x, y), r * u, 0, TAU); g.fill(); };
       const ell = (x, y, rx, ry, rot = 0) => path(p => p.ellipse(...P(x, y), rx * u, ry * u, rot, 0, TAU));
       const rrect = (x0, y0, x1, y1, r) => path(p => p.roundRect(x0 * u, -y1 * u, (x1 - x0) * u, (y1 - y0) * u, r * u));
       const limb = (a, b, w0, w1) => path(p => { const Aa = P(...a), Bb = P(...b), ang = Math.atan2(Bb[1] - Aa[1], Bb[0] - Aa[0]); p.arc(Bb[0], Bb[1], w1 * u, ang - Math.PI / 2, ang + Math.PI / 2); p.arc(Aa[0], Aa[1], w0 * u, ang + Math.PI / 2, ang + Math.PI * 1.5); p.closePath(); });
       const skin = A.skin, hy = 11.3, R = 3.35;
-      // ponytail and bow, behind
-      part(path(p => { p.moveTo(...P(1.6, 13.4)); p.bezierCurveTo(...P(5.2, 13.6), ...P(5.4, 9.5), ...P(4.2, 7.0)); p.bezierCurveTo(...P(4.8, 9.6), ...P(3.8, 11.6), ...P(1.4, 11.8)); p.closePath(); }), A.hair, { d: 0.25 });
-      part(path(p => { p.moveTo(...P(2.6, 13.2)); p.lineTo(...P(3.6, 14.2)); p.lineTo(...P(3.7, 12.9)); p.closePath(); p.moveTo(...P(2.6, 13.2)); p.lineTo(...P(2.1, 14.4)); p.lineTo(...P(1.7, 13.3)); p.closePath(); }), A.ribbon, { d: 0.08 });
+      // the side ponytail, behind, on her free side
+      part(path(p => { p.moveTo(...P(-2.4, hy + 1.1)); p.bezierCurveTo(...P(-5.9, hy + 1.6), ...P(-7.3, hy - 1.8), ...P(-5.6, hy - 4.5)); p.bezierCurveTo(...P(-5.1, hy - 5.3), ...P(-3.7, hy - 5.4), ...P(-3.5, hy - 4.4)); p.bezierCurveTo(...P(-3.4, hy - 3.8), ...P(-4.2, hy - 3.9), ...P(-4.4, hy - 3.4)); p.bezierCurveTo(...P(-4.9, hy - 2.0), ...P(-4.4, hy - 0.6), ...P(-2.4, hy - 0.7)); p.closePath(); }), A.hair, { d: 0.3 });
+      curve(() => { g.moveTo(...P(-3.4, hy + 0.6)); g.bezierCurveTo(...P(-5.4, hy + 0.4), ...P(-6.2, hy - 1.8), ...P(-5.3, hy - 3.8)); }, 0.16, shade(A.hair, 0.2));
       // star boots, legs, fringed skirt
       const bootTop = 2.6;
       for (const sx of [-1, 1]) {
         part(path(p => { p.moveTo(...P(sx * 0.2, 0)); p.lineTo(...P(sx * 0.15, bootTop)); p.lineTo(...P(sx * 1.55, bootTop)); p.lineTo(...P(sx * 1.6, 0.6)); p.quadraticCurveTo(...P(sx * 2.5, 0.55), ...P(sx * 2.6, 0)); p.closePath(); }), A.boots, { d: 0.2, sh: '#DCD6CA' });
-        g.fillStyle = A.band; const [bx, by] = P(sx * 0.9, 1.5); star5(g, bx, by, 0.5 * u);
+        g.fillStyle = A.star; const [bx, by] = P(sx * 0.9, 1.5); star5(g, bx, by, 0.55 * u);
         part(limb([sx * 0.85, 4.2], [sx * 0.85, bootTop - 0.1], 0.62, 0.55), skin, { d: 0.15 });
       }
       part(path(p => { p.moveTo(...P(-2.05, 5.0)); p.lineTo(...P(2.05, 5.0)); p.lineTo(...P(2.9, 3.0)); p.lineTo(...P(-2.9, 3.0)); p.closePath(); }), A.jacket, { d: 0.3 });
-      g.strokeStyle = A.fringe; g.lineWidth = 0.2 * u; g.lineCap = 'round'; for (let x = -2.75; x <= 2.76; x += 0.39) { g.beginPath(); g.moveTo(...P(x, 3.05)); g.lineTo(...P(x * 1.04, 2.35)); g.stroke(); }
-      // jacket, fringe across the chest, belt and star buckle
+      g.strokeStyle = A.fringe; g.lineWidth = 0.22 * u; g.lineCap = 'round'; for (let x = -2.75; x <= 2.76; x += 0.42) { g.beginPath(); g.moveTo(...P(x, 3.05)); g.lineTo(...P(x * 1.04, 2.3)); g.stroke(); }
+      // jacket with a white western yoke, belt with a star buckle
       part(path(p => { p.moveTo(...P(-1.9, 4.5)); p.bezierCurveTo(...P(-2.1, 6.0), ...P(-2.45, 7.4), ...P(-2.2, 8.1)); p.quadraticCurveTo(...P(0, 8.6), ...P(2.2, 8.1)); p.bezierCurveTo(...P(2.45, 7.4), ...P(2.1, 6.0), ...P(1.9, 4.5)); p.closePath(); }), A.jacket, { d: 0.35 });
-      g.strokeStyle = A.fringe; g.lineWidth = 0.2 * u; for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) { const y = 7.6 - i * 0.27, x = sx * (0.5 + i * 0.45); g.beginPath(); g.moveTo(...P(x, y)); g.lineTo(...P(x, y - 0.65)); g.stroke(); }
-      part(rrect(-1.95, 4.35, 1.95, 4.95, 0.15), '#5A3420', { d: 0.08 }); part(ell(0, 4.65, 0.6, 0.42), '#F0C14B', { d: 0.1 });
+      for (const sx of [-1, 1]) part(path(p => { p.moveTo(...P(sx * 0.25, 8.35)); p.lineTo(...P(sx * 2.3, 8.05)); p.lineTo(...P(sx * 2.25, 7.15)); p.lineTo(...P(sx * 1.35, 6.75)); p.lineTo(...P(sx * 0.9, 6.25)); p.lineTo(...P(sx * 0.25, 7.0)); p.closePath(); }), A.yoke, { d: 0.15 });
+      part(rrect(-1.95, 4.35, 1.95, 4.95, 0.15), A.belt, { d: 0.08 }); { const [bx, by] = P(0, 4.65); g.fillStyle = '#C88A12'; star5(g, bx, by, 0.8 * u); g.fillStyle = '#F4BF2A'; star5(g, bx, by, 0.64 * u); }
       part(rrect(-0.55, 7.9, 0.55, 8.6, 0.2), shade(skin, 0.15), { flat: true });
       part(path(p => { p.moveTo(...P(-1.25, 8.4)); p.quadraticCurveTo(...P(0, 7.9), ...P(1.25, 8.4)); p.lineTo(...P(0.2, 6.9)); p.closePath(); }), A.scarf, { d: 0.12 });
-      part(path(p => { p.moveTo(...P(0.9, 8.2)); p.lineTo(...P(1.9, 7.6)); p.lineTo(...P(1.3, 7.2)); p.closePath(); }), shade(A.scarf, 0.1), { d: 0.06 });
-      const arm = pts => { part(limb(pts[0], pts[1], 0.62, 0.55), A.jacket, { d: 0.18 }); part(limb(pts[1], pts[2], 0.55, 0.45), A.jacket, { d: 0.15 }); part(ell(pts[2][0], pts[2][1], 0.66, 0.66), A.gloves, { d: 0.14 });
-        g.strokeStyle = A.fringe; g.lineWidth = 0.18 * u; for (let k = 0.2; k < 0.95; k += 0.25) { const x = pts[0][0] + (pts[1][0] - pts[0][0]) * k, y = pts[0][1] + (pts[1][1] - pts[0][1]) * k; g.beginPath(); g.moveTo(...P(x + Math.sign(x) * 0.5, y)); g.lineTo(...P(x + Math.sign(x) * 1.05, y - 0.3)); g.stroke(); } };
+      const arm = pts => { part(limb(pts[0], pts[1], 0.62, 0.55), A.jacket, { d: 0.18 }); part(limb(pts[1], pts[2], 0.55, 0.45), A.jacket, { d: 0.15 }); part(ell(pts[2][0], pts[2][1], 0.68, 0.68), A.gloves, { d: 0.14, sh: '#D9D3C8' });
+        g.strokeStyle = A.fringe; g.lineWidth = 0.2 * u; for (let k = 0.2; k < 0.95; k += 0.25) { const x = pts[0][0] + (pts[1][0] - pts[0][0]) * k, y = pts[0][1] + (pts[1][1] - pts[0][1]) * k; g.beginPath(); g.moveTo(...P(x + Math.sign(x) * 0.5, y)); g.lineTo(...P(x + Math.sign(x) * 1.05, y - 0.3)); g.stroke(); } };
       arm([[-2.1, 7.7], [-3.25, 6.2], [-2.05, 5.1]]); // hand on hip, holding the coils
-      // head: ears, face, hair, the big eyes
+      // head: ears, face, bangs, the bow, the big eyes
       part(ell(-3.25, hy - 0.2, 0.6, 0.7), skin, { d: 0.12 }); part(ell(3.25, hy - 0.2, 0.6, 0.7), skin, { d: 0.12 });
       part(path(p => { p.moveTo(...P(-R, hy + 0.4)); p.bezierCurveTo(...P(-R, hy + 3.5), ...P(R, hy + 3.5), ...P(R, hy + 0.4)); p.bezierCurveTo(...P(R, hy - 2.6), ...P(1.2, hy - 3.25), ...P(0, hy - 3.25)); p.bezierCurveTo(...P(-1.2, hy - 3.25), ...P(-R, hy - 2.6), ...P(-R, hy + 0.4)); p.closePath(); }), skin, { d: 0.3, hiCol: 'rgba(255,255,255,0.22)' });
       part(path(p => { p.moveTo(...P(-3.3, hy + 0.3)); p.bezierCurveTo(...P(-3.4, hy + 3.2), ...P(3.4, hy + 3.2), ...P(3.3, hy + 0.3)); p.quadraticCurveTo(...P(2.4, hy + 1.6), ...P(0.9, hy + 1.6)); p.quadraticCurveTo(...P(0.2, hy + 2.1), ...P(-0.4, hy + 1.5)); p.quadraticCurveTo(...P(-1.6, hy + 1.9), ...P(-2.6, hy + 1.2)); p.quadraticCurveTo(...P(-3.0, hy + 0.9), ...P(-3.3, hy + 0.3)); p.closePath(); }), A.hair, { d: 0.2 });
+      { const bx = -3.05, by = hy + 0.55;
+        part(path(p => { p.moveTo(...P(bx, by)); p.quadraticCurveTo(...P(bx - 0.4, by + 1.6), ...P(bx - 1.5, by + 1.25)); p.quadraticCurveTo(...P(bx - 1.6, by + 0.4), ...P(bx, by)); p.closePath(); }), A.ribbon, { d: 0.14 });
+        part(path(p => { p.moveTo(...P(bx, by)); p.quadraticCurveTo(...P(bx - 1.7, by - 0.1), ...P(bx - 1.5, by - 1.2)); p.quadraticCurveTo(...P(bx - 0.5, by - 1.25), ...P(bx, by)); p.closePath(); }), A.ribbon, { d: 0.14 });
+        part(ell(bx - 0.1, by, 0.45, 0.45), shade(A.ribbon, 0.12), { d: 0.08 }); }
       const ey = hy - 0.55;
       dot(-2.05, ey - 1.0, 0.62, 'rgba(240,120,130,0.35)'); dot(2.05, ey - 1.0, 0.62, 'rgba(240,120,130,0.35)');
       const rx = 0.78, ry = 0.98, gap = 1.38;
@@ -492,19 +495,20 @@ p { margin: 0; max-width: 62ch; }
       if (mood === 'joy') { g.fillStyle = '#6E2230'; g.beginPath(); g.moveTo(...P(-0.8, my + 0.2)); g.quadraticCurveTo(...P(0, my - 1.2), ...P(0.8, my + 0.2)); g.closePath(); g.fill(); }
       else if (mood === 'focus') curve(() => { g.moveTo(...P(-0.42, my)); g.quadraticCurveTo(...P(0.1, my - 0.2), ...P(0.5, my + 0.2)); }, 0.24, ink);
       else curve(() => { g.moveTo(...P(-0.55, my + 0.15)); g.quadraticCurveTo(...P(0, my - 0.5), ...P(0.55, my + 0.15)); }, 0.26, ink);
-      // white hat, gold band and star
-      g.save(); g.translate(...P(0, hy + 2.55)); g.rotate(0.06); const H = (x, y) => [x * u, -y * u];
-      part(path(p => { p.moveTo(...H(-4.9, 0.7)); p.quadraticCurveTo(...H(-2.5, -0.6), ...H(0, -0.6)); p.quadraticCurveTo(...H(2.5, -0.6), ...H(4.9, 0.7)); p.quadraticCurveTo(...H(2.6, 0.4), ...H(0, 0.35)); p.quadraticCurveTo(...H(-2.6, 0.4), ...H(-4.9, 0.7)); p.closePath(); }), '#F1ECE2', { d: 0.15, sh: '#D9D2C4' });
-      part(path(p => { p.moveTo(...H(-2.3, 0.3)); p.bezierCurveTo(...H(-2.5, 3.9), ...H(2.5, 3.9), ...H(2.3, 0.3)); p.closePath(); }), A.hat, { d: 0.3, sh: '#E4DCCB' });
-      part(path(p => { p.moveTo(...H(-2.35, 0.2)); p.lineTo(...H(2.35, 0.2)); p.lineTo(...H(2.3, 0.9)); p.lineTo(...H(-2.3, 0.9)); p.closePath(); }), A.band, { d: 0.08 });
-      g.fillStyle = '#F2C14E'; star5(g, 0, -0.55 * u, 0.66 * u);
+      // the logo: a big white hat, brim curled hard at both sides, a big gold star up front
+      g.save(); g.translate(...P(0, hy + 2.55)); g.rotate(-0.04); const H = (x, y) => [x * u, -y * u];
+      part(path(p => { p.moveTo(...H(-5.6, 1.7)); p.bezierCurveTo(...H(-5.0, 0.2), ...H(-3.0, -0.8), ...H(0, -0.85)); p.bezierCurveTo(...H(3.0, -0.8), ...H(5.0, 0.2), ...H(5.6, 1.7)); p.bezierCurveTo(...H(4.8, 0.8), ...H(3.4, 0.3), ...H(0, 0.3)); p.bezierCurveTo(...H(-3.4, 0.3), ...H(-4.8, 0.8), ...H(-5.6, 1.7)); p.closePath(); }), '#F3EEE4', { d: 0.16, sh: '#D8D0C0' });
+      part(path(p => { p.moveTo(...H(-2.45, 0.15)); p.bezierCurveTo(...H(-2.75, 3.1), ...H(-1.7, 4.35), ...H(-0.75, 4.05)); p.quadraticCurveTo(...H(0, 3.55), ...H(0.75, 4.05)); p.bezierCurveTo(...H(1.7, 4.35), ...H(2.75, 3.1), ...H(2.45, 0.15)); p.closePath(); }), A.hat, { d: 0.32, sh: '#E2DACB' });
+      part(path(p => { p.moveTo(...H(-2.5, 0.15)); p.lineTo(...H(2.5, 0.15)); p.lineTo(...H(2.43, 0.95)); p.lineTo(...H(-2.43, 0.95)); p.closePath(); }), A.band, { d: 0.08 });
+      g.fillStyle = '#C88A12'; star5(g, 0, -2.05 * u, 1.4 * u); g.fillStyle = '#F4BF2A'; star5(g, 0, -2.05 * u, 1.18 * u); g.fillStyle = 'rgba(255,250,220,0.85)'; star5(g, -0.28 * u, -2.3 * u, 0.34 * u);
       g.restore();
       // the coils at her hip, then the rope arm
       for (let i = 0; i < 2; i++) rope(g, q => q.ellipse(...P(-2.6 - i * 0.12, 4.4 - i * 0.1), 0.9 * u, 1.2 * u, 0.3, 0, TAU), Math.max(1.4, u * 0.3));
       arm(armR);
     };
   })();
-  // (x0,y0) = feet; u = the game's wrangler unit. Rosie is drawn at 0.72 of the sheet's units so she stands as tall as Dusty's hat.
+  // (x0,y0) = feet; u = the game's wrangler unit. Rosie is drawn at 0.72 of the sheet's units.
+  // Returns the rope hand with .coil (the hand holding the coils) and .loopH (how high the idle loop spins, in game units).
   function rosieWrangler(c, x0, y0, u, mode, aim, spin, rope) {
     const uu = u * 0.72, lean = mode === 'pull' ? -0.12 : 0, sh = [2.1, 7.7];
     let hand, elbow;
@@ -518,7 +522,7 @@ p { margin: 0; max-width: 62ch; }
     showRosie(c, uu, mode === 'throw' ? 'focus' : mode === 'pull' ? 'joy' : 'happy', [sh, elbow, hand], rope);
     c.restore();
     const turn = (qx, qy) => [x0 + qx * Math.cos(lean) - qy * Math.sin(lean), y0 + qx * Math.sin(lean) + qy * Math.cos(lean)];
-    const hp = turn(hand[0] * uu, -hand[1] * uu); hp.coil = turn(-2.3 * uu, -4.8 * uu);
+    const hp = turn(hand[0] * uu, -hand[1] * uu); hp.coil = turn(-2.3 * uu, -4.8 * uu); hp.loopH = 19.9 * 0.72;
     return hp;
   }
 
@@ -574,7 +578,7 @@ p { margin: 0; max-width: 62ch; }
     // the rope runs from the coils in one hand to the rope hand: one rope, sagging a little between them
     const cx = px + hand.coil[0], cy = py + hand.coil[1], hx = px + hand[0], hy = py + hand[1], sag = Math.max(4 * s, Math.min(14 * s, Math.hypot(hx - cx, hy - cy) * 0.18));
     ropeStroke(ctx, g => { g.moveTo(cx, cy); g.bezierCurveTo(cx + (hx - cx) * 0.25, cy + sag * 1.4, cx + (hx - cx) * 0.7, hy + sag + (cy - hy) * 0.3, hx, hy); }, 2.2 * s);
-    return { x: hx, y: hy };
+    return { x: hx, y: hy, loopH: hand.loopH || 13.3 };
   }
 
   /* ---------- rope ---------- */
@@ -1194,7 +1198,7 @@ p { margin: 0; max-width: 62ch; }
     shadowAt(boy.x, boy.y - 7 * s, 1.1, 22);
     const hand = drawWrangler(boy.x, boy.y, who, mode, aim, spin);
     if (mode === 'idle') {
-      const cx = boy.x + 4 * s, cy = boy.y - 13.3 * 6.3 * s, rx = 27 * s, ry = 8 * s, kx = cx + rx * Math.cos(spin), ky = cy + ry * Math.sin(spin);
+      const cx = boy.x + 4 * s, cy = boy.y - hand.loopH * 6.3 * s, rx = 27 * s, ry = 8 * s, kx = cx + rx * Math.cos(spin), ky = cy + ry * Math.sin(spin);
       const spoke = () => ropeStroke(ctx, g => { g.moveTo(hand.x, hand.y); g.quadraticCurveTo((hand.x + kx) / 2, (hand.y + ky) / 2 + 3 * s, kx, ky); }, 2.4 * s);
       if (Math.sin(spin) < 0) spoke();
       ropeStroke(ctx, g => g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2), 2.6 * s);
