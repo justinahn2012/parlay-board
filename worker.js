@@ -382,7 +382,7 @@ function authorize(prev, next, user) {
 /* ------------------------------ the object ----------------------------- */
 
 export class Board {
-  constructor(state) { this.state = state; }
+  constructor(state, env) { this.state = state; this.env = env; }
   s(k) { return this.state.storage.get(k); }
   p(k, v) { return this.state.storage.put(k, v); }
 
@@ -413,6 +413,48 @@ export class Board {
     this.repaired = true;
   }
 
+  /* TEMPORARY (2026-11-08): read the board as it was before the wipe, using the
+     database's point-in-time history. Removed in the next release. Every step is
+     explicit and keyed; nothing here runs on its own. */
+  async pitr(url, path) {
+    const J2 = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { 'content-type': 'application/json' } });
+    if (!sameHash(await sha(url.searchParams.get('k') || ''), PITR_KEY_HASH)) return J2({ error: 'no' }, 403);
+    const st = this.state.storage;
+    const scratch = () => this.env.BOARD.get(this.env.BOARD.idFromName('pitr-scratch'));
+    if (path === '/pitr/info') {
+      const out = { cur: await st.getCurrentBookmark(), at: {} };
+      for (const t of (url.searchParams.get('t') || '').split(',').filter(Boolean))
+        out.at[t] = await st.getBookmarkForTime(Number(t));
+      const b = (await st.get('board')) || {};
+      out.version = b.version; out.boardAt = b.at;
+      return J2(out);
+    }
+    if (path === '/pitr/note') {                       // lives in the scratch object, which a restore never touches
+      const add = url.searchParams.get('add');
+      const notes = (await st.get('notes')) || [];
+      if (add) { notes.push({ at: Date.now(), note: JSON.parse(add) }); await st.put('notes', notes); }
+      return J2(notes);
+    }
+    if (path === '/pitr/rewind') {
+      const b = url.searchParams.get('b');
+      if (!b || b.length < 20) return J2({ error: 'bookmark required' }, 400);
+      const undo = await st.onNextSessionRestoreBookmark(b);
+      await scratch().fetch('https://do/pitr/note?k=' + url.searchParams.get('k') + '&add=' + encodeURIComponent(JSON.stringify({ rewind: b, undo })));
+      this.state.abort('restoring');
+      return J2({ unreachable: true });
+    }
+    if (path === '/pitr/peek') {                       // week 9 as stored, without phone numbers; copy kept in scratch
+      const b = (await st.get('board')) || {};
+      let S = {}; try { S = JSON.parse(b.value || '{}'); } catch (e) {}
+      const out = { version: b.version, boardAt: b.at, roster: (S.roster || []).map(r => r.n),
+        repairs: await st.get('repairs'), weeks: {} };
+      for (const k of (url.searchParams.get('w') || '9').split(',')) out.weeks[k] = (S.weeks || {})[k];
+      await scratch().fetch('https://do/pitr/note?k=' + url.searchParams.get('k') + '&add=' + encodeURIComponent(JSON.stringify({ peek: out })));
+      return J2(out);
+    }
+    return J2({ error: 'unknown' }, 404);
+  }
+
   async users() { return (await this.s('users')) || {}; }
   async board() { return (await this.s('board')) || { version: 0, value: null }; }
 
@@ -427,9 +469,10 @@ export class Board {
   }
 
   async fetch(req) {
-    await this.repair();
     const url = new URL(req.url);
     const path = url.pathname;
+    if (path.indexOf('/pitr/') === 0) return this.pitr(url, path);   // temporary, before repair() on purpose
+    await this.repair();
     const body = req.method === 'POST' || req.method === 'PUT'
       ? await req.json().catch(() => ({})) : {};
 
@@ -706,6 +749,8 @@ async function fetchFinals(dates) {
   return found;
 }
 
+/* hash of the one-time key for the temporary /api/pitr tools (the key itself is not in the repo) */
+const PITR_KEY_HASH = 'PW2Zf182U1j3W1Xwv7EWJDmLknLFG8TrUqqwXdtolnE=';
 const stub = env => env.BOARD.get(env.BOARD.idFromName('the-board'));
 
 async function syncScores(env) {
@@ -1172,6 +1217,10 @@ export default {
          dropping it silently returns the decoy salt for every account. */
       return s.fetch('https://do/auth/' + p.slice('/api/auth/'.length) + url.search,
         forward(req, p, body));
+    }
+    if (p.indexOf('/api/pitr/') === 0) {
+      const target = url.searchParams.get('s') ? env.BOARD.get(env.BOARD.idFromName('pitr-scratch')) : s;   // ?s=1 reads the scratch notes
+      return target.fetch('https://do/pitr/' + p.slice('/api/pitr/'.length) + url.search, { method: 'GET' });
     }
     if (p === '/api/state') {
       const body = req.method === 'PUT' ? await req.text() : undefined;
